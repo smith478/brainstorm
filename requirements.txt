@@ -1,5 +1,7 @@
 langchain>=0.1.0
 langchain-community>=0.0.10
+langchainhub>=0.1.20
+langchain-ollama>=0.1.4
 ollama>=0.1.7
 arxiv>=2.1.0
 requests>=2.31.0
