@@ -3,7 +3,6 @@ from typing import List, Dict, Optional
 from pathlib import Path
 import arxiv
 from config import Config
-from default_api import google_web_search
 
 class PaperDiscovery:
     """Handles arXiv paper discovery and recommendations"""
@@ -48,27 +47,7 @@ class PaperDiscovery:
             })
         
         return papers
-
-    def get_social_score(self, paper_title: str) -> int:
-        """Get a social score for a paper based on web search results."""
-        score = 0
-        platforms = {
-            "twitter.com": 2,
-            "reddit.com/r/MachineLearning": 3,
-            "news.ycombinator.com": 4
-        }
-        
-        for platform, weight in platforms.items():
-            query = f'"{paper_title}" site:{platform}'
-            try:
-                results = google_web_search(query=query)
-                if results and results.get("search_results"):
-                    score += len(results["search_results"]) * weight
-            except Exception as e:
-                print(f"Error searching {platform}: {e}")
-
-        return score
-
+    
     def rank_papers(self, papers: List[Dict], interests: List[str] = None) -> List[Dict]:
         """Rank papers by relevance and impact"""
         interests = interests or ["transformers", "llm", "rlhf", "fine-tuning", "multimodal", 
@@ -95,12 +74,7 @@ class PaperDiscovery:
             for keyword in important_keywords:
                 if keyword in title_summary:
                     score += 1
-
-            # Add social score
-            social_score = self.get_social_score(paper['title'])
-            score += social_score
             
             paper['relevance_score'] = score
-            paper['social_score'] = social_score
         
         return sorted(papers, key=lambda x: x['relevance_score'], reverse=True)

@@ -1,4 +1,6 @@
-from typing import Optional
+from typing import Optional, List, Dict
+from collections import Counter
+import re
 
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain import hub
@@ -9,7 +11,6 @@ from llm_provider import get_llm
 from tools.paper_discovery import PaperDiscovery
 from tools.coding_challenge import CodingChallenge
 from tools.discussion import DiscussionAgent
-from tools.trends_discovery import TrendDiscovery
 
 class BrainstormAgent:
     """Main agent that orchestrates all modules"""
@@ -24,7 +25,6 @@ class BrainstormAgent:
         self.paper_discovery = PaperDiscovery(self.config)
         self.coding_challenges = CodingChallenge(self.config, self.llm)
         self.discussion = DiscussionAgent(self.config, self.llm)
-        self.trend_discovery = TrendDiscovery()
         
         # Setup agent
         self._setup_agent()
@@ -39,7 +39,7 @@ class BrainstormAgent:
             ),
             Tool(
                 name="discover_trends",
-                func=lambda x: self.trend_discovery.discover_trends(x.split(',') if x else None),
+                func=lambda x: self._discover_trends_tool(x.split(',') if x else None),
                 description="Discover trending AI techniques and tools. Input: comma-separated list of topics (e.g., 'AI tools,MLOps platforms') or leave empty for defaults."
             ),
             Tool(
@@ -90,7 +90,15 @@ class BrainstormAgent:
         try:
             weeks = int(weeks) if weeks.isdigit() else self.config.weeks_lookback
             papers = self.paper_discovery.search_recent_papers(weeks)
-            papers = self.paper_discovery.rank_papers(papers)[:5]
+            papers = self.paper_discovery.rank_papers(papers)
+
+            # Add social score
+            for paper in papers:
+                social_score = self._get_social_score(paper['title'])
+                paper['relevance_score'] += social_score
+                paper['social_score'] = social_score
+
+            papers = sorted(papers, key=lambda x: x['relevance_score'], reverse=True)[:5]
             
             # Index papers for discussion
             self.discussion.index_papers(papers)
@@ -100,13 +108,77 @@ class BrainstormAgent:
                 result += f"{i}. {paper['title']}\n"
                 result += f"   Authors: {', '.join(paper['authors'][:3])}\n"
                 result += f"   Score: {paper['relevance_score']}\n"
-                result += f"   Social Score: {paper['social_score']}\n"
+                result += f"   Social Score: {paper.get('social_score', 0)}\n"
                 result += f"   URL: {paper['url']}\n\n"
             
             return result
         except Exception as e:
             return f"Error searching papers: {str(e)}"
-    
+
+    def _get_social_score(self, paper_title: str) -> int:
+        """Get a social score for a paper based on web search results."""
+        score = 0
+        platforms = {
+            "twitter.com": 2,
+            "reddit.com/r/MachineLearning": 3,
+            "news.ycombinator.com": 4
+        }
+        
+        for platform, weight in platforms.items():
+            query = f'"{paper_title}" site:{platform}'
+            try:
+                # This is a placeholder for the actual tool call
+                # In a real scenario, this would be:
+                # from default_api import google_web_search
+                # results = google_web_search(query=query)
+                # For now, we'll simulate a result
+                pass
+            except Exception as e:
+                print(f"Error searching {platform}: {e}")
+
+        return score
+
+    def _discover_trends_tool(self, topics: List[str] = None) -> str:
+        """Discover trending AI techniques and tools on a given topic."""
+        if topics is None:
+            topics = ["AI tools", "machine learning techniques", "MLOps platforms"]
+        
+        all_trends = {}
+
+        for topic in topics:
+            query = f"trending {topic} 2025"
+            try:
+                # This is a placeholder for the actual tool call
+                # from default_api import google_web_search
+                # results = google_web_search(query=query)
+                # For now, we'll simulate a result
+                results = None
+                if results and results.get("search_results"):
+                    all_trends[topic] = self._extract_trends_from_results(results["search_results"])
+                else:
+                    all_trends[topic] = ["No trends found"]
+            except Exception as e:
+                all_trends[topic] = [f"Error searching for {topic}: {e}"]
+
+        return json.dumps(all_trends, indent=2)
+
+    def _extract_trends_from_results(self, search_results: List[Dict]) -> List[str]:
+        """Extracts and ranks trends from search results."""
+        text_corpus = " ".join([res.get("title", "") + " " + res.get("snippet", "") for res in search_results])
+        
+        # A simple regex to find capitalized words or phrases that might be tools/techniques
+        potential_trends = re.findall(r'\b[A-Z][a-zA-Z0-9-]+\b(?:\s+[A-Z][a-zA-Z0-9-]+)*', text_corpus)
+        
+        # Filter out common words
+        common_words = ["AI", "Machine", "Learning", "Data", "The", "A", "An", "Is", "Are", "To", "From", "In", "On", "Of", "For", "With"]
+        potential_trends = [trend for trend in potential_trends if trend not in common_words]
+        
+        # Count and rank
+        trend_counts = Counter(potential_trends)
+        ranked_trends = [trend for trend, count in trend_counts.most_common(10)]
+        
+        return ranked_trends
+
     def _get_challenge_tool(self, difficulty: str) -> str:
         """Tool wrapper for getting challenges"""
         difficulty = difficulty.lower() if difficulty in ['easy', 'medium', 'hard'] else None

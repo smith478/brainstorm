@@ -153,8 +153,7 @@ brainstorm/
 │   ├── __init__.py
 │   ├── paper_discovery.py
 │   ├── coding_challenge.py
-│   ├── discussion.py
-│   └── trends_discovery.py
+│   └── discussion.py
 ├── challenges/             # Directory for coding challenges
 │   └── .gitkeep
 ├── papers_cache/           # Cached paper data

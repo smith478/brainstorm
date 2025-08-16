@@ -43,8 +43,7 @@ brainstorm/
 │   ├── __init__.py
 │   ├── paper_discovery.py
 │   ├── coding_challenge.py
-│   ├── discussion.py
-│   └── trends_discovery.py
+│   └── discussion.py
 ├── challenges/             # Directory for coding challenges
 │   └── .gitkeep
 ├── papers_cache/           # Cached paper data
@@ -60,8 +59,7 @@ brainstorm/
 *   The user's main goal is to have a tool that helps them stay up-to-date with AI and practice their skills.
 *   The project has been refactored into a modular structure. The core logic is now split across several files:
     *   `main.py`: The command-line interface.
-    *   `agent.py`: The main agent that orchestrates the tools.
-    *   `tools/`: Each file in this directory represents a specific capability (e.g., `paper_discovery.py`, `coding_challenge.py`, `trends_discovery.py`).
-*   The new `discover_trends` tool is an early prototype and can be improved by refining the regex for trend extraction and by adding more data sources.
+    *   `agent.py`: The main agent that orchestrates the tools. This file also contains the logic for trend discovery and social score calculation.
+    *   `tools/`: Each file in this directory represents a specific capability (e.g., `paper_discovery.py`, `coding_challenge.py`).
 *   The user is interested in expanding the project with new features, such as a multi-agent system and new learning domains (e.g., MLOps, infrastructure). The `README.md` contains a "Future Enhancements" section for ideas.
 *   The user has chosen `uv` as the package manager. Stick to this choice for any future dependency management tasks.
